@@ -11,18 +11,12 @@
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
   </property>
   <property name="minimumSize">
-   <size>
-    <width>400</width>
-    <height>450</height>
-   </size>
-  </property>
-  <property name="maximumSize">
    <size>
     <width>400</width>
     <height>450</height>
@@ -70,29 +64,30 @@
     </property>
     <addaction name="actionNowa_gra"/>
     <addaction name="separator"/>
-    <addaction name="actionWczytaj_gr"/>
-    <addaction name="actionZapisz_gr"/>
+    <addaction name="actionWczytaj_gre"/>
+    <addaction name="actionZapisz_gre"/>
     <addaction name="separator"/>
     <addaction name="separator"/>
-    <addaction name="actionZako_cz_gr"/>
+    <addaction name="actionZakoncz_gre"/>
    </widget>
    <widget class="QMenu" name="menuGra">
     <property name="title">
      <string>Gra</string>
     </property>
     <addaction name="actionCofnij_ruch"/>
-    <addaction name="actionPowt_rz_ruch"/>
+    <addaction name="actionPowtorz_ruch"/>
     <addaction name="separator"/>
+    <addaction name="actionPodpowiedz"/>
     <addaction name="actionRuch_komputera"/>
     <addaction name="actionUstawienia"/>
     <addaction name="separator"/>
-    <addaction name="actionZako_cz_tur"/>
+    <addaction name="actionZakoncz_ture"/>
    </widget>
    <widget class="QMenu" name="menuEdycja">
     <property name="title">
      <string>Edycja</string>
     </property>
-    <addaction name="actionW_cz_tryb_edycji"/>
+    <addaction name="actionWlacz_tryb_edycji"/>
    </widget>
    <widget class="QMenu" name="menuPomoc">
     <property name="title">
@@ -116,23 +111,29 @@
     <string>N</string>
    </property>
   </action>
-  <action name="actionWczytaj_gr">
+  <action name="actionWczytaj_gre">
    <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="text">
     <string>Wczytaj grę</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
   </action>
-  <action name="actionZapisz_gr">
+  <action name="actionZapisz_gre">
    <property name="enabled">
-    <bool>true</bool>
+    <bool>false</bool>
    </property>
    <property name="text">
     <string>Zapisz grę</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
   </action>
-  <action name="actionZako_cz_gr">
+  <action name="actionZakoncz_gre">
    <property name="text">
     <string>Zakończ grę</string>
    </property>
@@ -151,7 +152,7 @@
     <string>Left</string>
    </property>
   </action>
-  <action name="actionPowt_rz_ruch">
+  <action name="actionPowtorz_ruch">
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -163,6 +164,9 @@
    </property>
   </action>
   <action name="actionRuch_komputera">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Ruch komputera</string>
    </property>
@@ -170,7 +174,10 @@
     <string>R</string>
    </property>
   </action>
-  <action name="actionZako_cz_tur">
+  <action name="actionZakoncz_ture">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Zakończ turę</string>
    </property>
@@ -178,12 +185,21 @@
     <string>Return</string>
    </property>
   </action>
-  <action name="actionW_cz_tryb_edycji">
+  <action name="actionWlacz_tryb_edycji">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Wł/wył tryb edycji</string>
    </property>
+   <property name="shortcut">
+    <string>E</string>
+   </property>
   </action>
   <action name="actionUstawienia">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Przełącz autoruchy</string>
    </property>
@@ -195,10 +211,27 @@
    <property name="text">
     <string>Zasady gry</string>
    </property>
+   <property name="shortcut">
+    <string>F1</string>
+   </property>
   </action>
   <action name="actionO_programie">
    <property name="text">
     <string>O programie</string>
+   </property>
+   <property name="shortcut">
+    <string>F9</string>
+   </property>
+  </action>
+  <action name="actionPodpowiedz">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Podpowiedź</string>
+   </property>
+   <property name="shortcut">
+    <string>H</string>
    </property>
   </action>
  </widget>
@@ -211,6 +244,8 @@
    <slots>
     <signal>enable_back(bool)</signal>
     <signal>enable_forth(bool)</signal>
+    <signal>enable_turn_end(bool)</signal>
+    <signal>enable_hint(bool)</signal>
     <slot>load_game()</slot>
     <slot>save_game()</slot>
    </slots>
@@ -218,6 +253,38 @@
  </customwidgets>
  <resources/>
  <connections>
+  <connection>
+   <sender>graphicsView</sender>
+   <signal>enable_forth(bool)</signal>
+   <receiver>actionPowtorz_ruch</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>224</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionZapisz_gre</sender>
+   <signal>triggered()</signal>
+   <receiver>graphicsView</receiver>
+   <slot>save_game()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>224</y>
+    </hint>
+   </hints>
+  </connection>
   <connection>
    <sender>graphicsView</sender>
    <signal>enable_back(bool)</signal>
@@ -236,8 +303,8 @@
   </connection>
   <connection>
    <sender>graphicsView</sender>
-   <signal>enable_forth(bool)</signal>
-   <receiver>actionPowt_rz_ruch</receiver>
+   <signal>enable_turn_end(bool)</signal>
+   <receiver>actionZakoncz_ture</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
@@ -251,30 +318,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionZapisz_gr</sender>
-   <signal>triggered()</signal>
-   <receiver>graphicsView</receiver>
-   <slot>save_game()</slot>
+   <sender>graphicsView</sender>
+   <signal>enable_hint(bool)</signal>
+   <receiver>actionPodpowiedz</receiver>
+   <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
      <x>199</x>
      <y>224</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionWczytaj_gr</sender>
-   <signal>triggered()</signal>
-   <receiver>graphicsView</receiver>
-   <slot>load_game()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
     </hint>
     <hint type="destinationlabel">
      <x>199</x>

@@ -14,18 +14,20 @@ class GameModeDialog : public QDialog
 public:
 	explicit GameModeDialog(QWidget *parent = 0);
 	~GameModeDialog();
+	void closeEvent(QCloseEvent *event);
 	
 signals:
 	void chosen(int);
 
 private slots:
-	void on_pushButton_2_clicked();
 
-	void on_pushButton_clicked();
+	void on_hum_vs_hum_but_clicked();
 
-	void on_pushButton_3_clicked();
+	void on_hum_white_but_clicked();
 
-	void on_GameModeDialog_destroyed();
+	void on_hum_black_but_clicked();
+
+	void on_hum_zer_but_clicked();
 
 private:
 	Ui::GameModeDialog *ui;

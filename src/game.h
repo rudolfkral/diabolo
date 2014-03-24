@@ -27,26 +27,17 @@ class Game
 	 * color_spec - for determining color
 	 */
 
-	typedef bool color_spec;
-
-	/*
-	 * WHITE and BLACK - used to make retrieving footballer's id more direct
-	 */
-
-	static const bool WHITE = true;
-	static const bool BLACK = false;
-
-	/*
-	 * id - specifies item ID
-	 */
-
-	typedef int id;
+	enum color_spec
+	{
+		WHITE = 0,
+		BLACK = 1
+	};
 
 	/*
 	 * NONE - specifies id of nothing
 	 */
 
-	static const id NONE = -1;
+	static const int NONE = -1;
 
 	/*
 	 * get_id - get id of an item
@@ -56,19 +47,13 @@ class Game
 	 *
 	 */
 
-	id get_id(const color_spec, const int) const;
+	int get_id(const color_spec, const int) const;
 	
 	/*
 	 * id_color - returns color of item identified by id
 	 */
 
-	color_spec id_color(const id fid) const { return fid < 7; }
-
-	/*
-	 * pos - specifies item position
-	 */
-	
-	typedef int pos;
+	color_spec id_color(const int fid) const { return (fid < 7) ? WHITE : BLACK; }
 
 	/*
 	 * get_elem_pos - get element's position
@@ -78,7 +63,7 @@ class Game
 	 *
 	 */
 
-	pos get_elem_pos(const id) const;
+	int get_elem_pos(const int) const;
 
 	/*
 	 * get_pos_id - get id of element on pos
@@ -86,29 +71,21 @@ class Game
 	 * NOTE: returns NONE if there is none
 	 */
 
-	id get_pos_id(const pos) const;
+	int get_pos_id(const int) const;
 
-	/*
-	 * what's your vector Victor?
-	 */
-
-	typedef std::pair<int, int> pos_vect;
+	typedef std::pair<int, int> move_2d;
 
 	/*
 	 * get_pos_moved - get position moved by a specified vector
 	 *
-	 * Example: get_pos_moved(pos, pos_vect(1, 0))
+	 * Example: get_pos_moved(pos, move_2d(1, 0))
 	 * gets (pos.x + 1, pos.y -1) translated to in-game position
 	 *
 	 */
 
-	pos get_pos_moved(const pos, const pos_vect) const;
+	int get_pos_moved(const int, const move_2d) const;
 
-	/*
-	 * stupid, but may be changed in the future
-	 */
-
-	typedef std::vector<int> pos_vector;
+	typedef std::vector<int> int_vector;
 
 	/*
 	 * get_pos_neigh - get neighbouring fields
@@ -120,9 +97,7 @@ class Game
 	 * should return {1, 7}
 	 */
 
-	pos_vector get_pos_neigh(const pos) const;
-
-	//pos_vector get_pos_neigh(const id) const;
+	int_vector get_pos_neigh(const int) const;
 
 	/*
 	 * get_pos_free_neigh - get neighboring fields which are
@@ -135,7 +110,7 @@ class Game
 	 * should return {7} in standard starting position
 	 */
 
-	pos_vector get_pos_free_neigh(const pos) const;
+	int_vector get_pos_free_neigh(const int) const;
 
 	/*
 	 * get_ids_reachable_from - get ids of footballers
@@ -145,9 +120,7 @@ class Game
 	 *
 	 */
 
-	typedef std::vector<id> id_vector;
-
-	id_vector get_ids_reachable_from(const pos) const;
+	int_vector get_ids_reachable_from(const int) const;
 
 	/*
 	 * get_ids_team_reachable_from - get ids of pos's
@@ -156,11 +129,11 @@ class Game
 	 * NOTE: diagonals DO count
 	 */
 
-	id_vector get_ids_team_reachable_from(const pos) const;
+	int_vector get_ids_team_reachable_from(const int) const;
 
-	id get_ball_owner(const color_spec) const;
+	int get_ball_owner(const color_spec) const;
 
-	bool has_ball(const id) const;
+	bool has_ball(const int) const;
 
 	int get_turn() const { return turn; }
 
@@ -173,20 +146,19 @@ class Game
 	/*
 	 * move - WHERE has moved to WHERE
 	 *
-	 * NOTE: (-1, -1) means turn end.
 	 */
 
-	typedef std::pair<pos, pos> move;
+	typedef std::pair<int, int> move;
+
+	static const move MOVE_END;
 
 	bool make_move(const move);
-
-	//id_vector get_ids_reachable_from(const id) const;
 	
 	/*
 	 * possible_moves - returns all possible moves of id
 	 */
 
-	pos_vector possible_moves(const id) const;
+	int_vector possible_moves(const int) const;
 	
 	/*
 	 * end_turn - end this turn
@@ -194,7 +166,9 @@ class Game
 
 	void end_turn();
 	
-	bool is_turn_end(move m) { return m.first == -1; }
+	bool is_turn_end(move m) const { return m == MOVE_END; }
+
+	bool can_end_turn() const;
 
 	/*
 	 * random_move - generates random move
@@ -238,7 +212,7 @@ class Game
 	 * get_opp_neighbours - returns opposing neighbours
 	 */
 
-	id_vector get_opp_neighbours(const id) const;
+	int_vector get_opp_neighbours(const int) const;
 	
 	/*
 	 * game_state - describing game state
@@ -294,7 +268,7 @@ class Game
 	 * set_position - sets one's position, identyfying by id
 	 */
 
-	void set_position(const id fid, const pos pt);
+	void set_position(const int fid, const int pt);
 
 	/*
 	 * clear_pitch - clears the pitch, needs to be set afterwards
@@ -314,7 +288,7 @@ class Game
 
 	void set_moves_made(int m) { moves_made = m; }
 
-	void set_ball_owner(const color_spec col, const id fid);
+	void set_ball_owner(const color_spec col, const int fid);
 
 	/*
 	 * bad_game - returns true if game state is incorrect
@@ -325,16 +299,10 @@ class Game
 	private:
 	
 	/*
-	 * bm_type - map between ids and positions
-	 */
-
-	typedef boost::bimap<id, pos> bm_type;
-	
-	/*
 	 * bm - bidirectional map between ids and positions
 	 */
 
-	bm_type bm;
+	boost::bimap<int, int> bm;
 
 	/*
 	 * act_player - active player
@@ -370,7 +338,7 @@ class Game
 	 * ball_owner - balls owner's id
 	 */
 
-	id white_ball_owner, black_ball_owner;
+	int white_ball_owner, black_ball_owner;
 	
 	/*
 	 * move_history - all moves from the beginning

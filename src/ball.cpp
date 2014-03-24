@@ -4,7 +4,7 @@
 const QString Ball::FILE_NAME =
 		QString(":/img/ball.png");
 
-Ball::Ball(bool team, int row, QObject *parent) :
+Ball::Ball(int team, int row, QObject *parent) :
 	QObject(parent), QGraphicsPixmapItem()
 {
 	this->team = team;

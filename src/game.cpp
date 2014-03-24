@@ -7,10 +7,27 @@
 
 #include "game.h"
 #include <cstdlib>
+#include <ctime>
+#include <cstdio>
 
-const bool Game::WHITE;
-const bool Game::BLACK;
-const Game::id Game::NONE;
+const int Game::NONE;
+const Game::move Game::MOVE_END(-1, -1);
+
+const std::vector<Game::move_2d> dirs = {Game::move_2d(1, 0),
+										  Game::move_2d(0, 1),
+										  Game::move_2d(-1, 0),
+										  Game::move_2d(0, -1)};
+const std::vector<Game::move_2d> dirs_ext = {Game::move_2d(1, 0),
+											  Game::move_2d(0, 1),
+											  Game::move_2d(-1, 0),
+											  Game::move_2d(0, -1),
+											  Game::move_2d(-1, -1),
+											  Game::move_2d(-1, 1),
+											  Game::move_2d(1, 1),
+											  Game::move_2d(1, -1)};
+const std::vector<Game::move_2d> dirs_line = {Game::move_2d(1, -1),
+										  Game::move_2d(1, 0),
+										  Game::move_2d(1, 1)};
 
 /*
  * default constructor
@@ -22,10 +39,10 @@ Game::Game() : act_player(WHITE), turn(0), passed(false),
 	white_made_move(false),moves_made(0), white_ball_owner(3),
 	black_ball_owner(10), edit_mode(false)
 {
-	for(id i = 0; i < 7; i++)
+	for(int i = 0; i < 7; i++)
 	{
-		bm.insert(bm_type::value_type(i, (pos) i));
-		bm.insert(bm_type::value_type(i + 7, (pos) i + 42));
+		bm.insert(boost::bimap<int, int>::value_type(i, i));
+		bm.insert(boost::bimap<int, int>::value_type(i + 7, i + 42));
 	}
 }
 
@@ -46,25 +63,25 @@ void Game::new_game()
 	black_ball_owner = 10;
 	edit_mode = false;
 	bm.left.clear();
-	for(id i = 0; i < 7; i++)
+	for(int i = 0; i < 7; i++)
 	{
-		bm.insert(bm_type::value_type(i, (pos) i));
-		bm.insert(bm_type::value_type(i + 7, (pos) i + 42));
+		bm.insert(boost::bimap<int, int>::value_type(i, i));
+		bm.insert(boost::bimap<int, int>::value_type(i + 7, i + 42));
 	}
 	moves_history.clear();
 	moves_forward.clear();
 }
 
 /*
- * get_id
+ * get_int
  *
  * 0 - 6 - white figures, 7 - 14 - black figures
  */
 
-Game::id
+int
 Game::get_id(const color_spec col, const int num) const
 {
-	if(col)
+	if(col == WHITE)
 		return num;
 	else
 		return num + 7;
@@ -74,8 +91,8 @@ Game::get_id(const color_spec col, const int num) const
  * get_elem_pos
  */
 
-Game::pos
-Game::get_elem_pos(const id elem) const
+int
+Game::get_elem_pos(const int elem) const
 {
 	return bm.left.at(elem);
 }
@@ -87,8 +104,8 @@ Game::get_elem_pos(const id elem) const
  * id. If not, returns NONE.
  */
 
-Game::id
-Game::get_pos_id(const pos pt) const
+int
+Game::get_pos_id(const int pt) const
 {
 	if(bm.right.find(pt) == bm.right.end())
 		return NONE;
@@ -104,8 +121,8 @@ Game::get_pos_id(const pos pt) const
  * NOTE: 0 is top left corner, not - as many would think - bottom left corner.
  */
 
-Game::pos
-Game::get_pos_moved(const pos pt, const pos_vect u) const
+int
+Game::get_pos_moved(const int pt, const move_2d u) const
 {
 	int res_x = pt % 7;
 	int res_y = (pt - res_x) / 7;
@@ -123,34 +140,19 @@ Game::get_pos_moved(const pos pt, const pos_vect u) const
  * south. Then, calculates neighboring positions.
  */
 
-Game::pos_vector
-Game::get_pos_neigh(const pos pt) const
+Game::int_vector
+Game::get_pos_neigh(const int pt) const
 {
-	std::vector<pos_vect> vects;
-	vects.push_back(pos_vect(1, 0));
-	vects.push_back(pos_vect(0, 1));
-	vects.push_back(pos_vect(-1, 0));
-	vects.push_back(pos_vect(0, -1));
-	pos_vector result;
-	for(std::vector<pos_vect>::iterator it = vects.begin();
-			it != vects.end(); ++it)
+	int_vector result;
+	for(std::vector<move_2d>::const_iterator it = dirs.begin();
+			it != dirs.end(); ++it)
 	{
-		pos tmp = get_pos_moved(pt, *it);
+		int tmp = get_pos_moved(pt, *it);
 		if(tmp >= 0 && tmp < 49)
 			result.push_back(tmp);
 	}
 	return result;
 }
-
-/*Game::pos_vector
-Game::get_pos_neigh(const id fid) const
-{
-	pos tmp = get_pos_id(fid);
-	if(tmp != NONE)
-		return get_pos_neigh(tmp);
-	else
-		return pos_vector();
-}*/
 
 /*
  * get_pos_free_neigh - gives a vector of free neighbouring fields
@@ -159,11 +161,11 @@ Game::get_pos_neigh(const id fid) const
  * those who don't.
  */
 
-Game::pos_vector
-Game::get_pos_free_neigh(const pos pt) const
+Game::int_vector
+Game::get_pos_free_neigh(const int pt) const
 {
-	pos_vector result = get_pos_neigh(pt);
-	for(pos_vector::iterator it = result.begin();
+	int_vector result = get_pos_neigh(pt);
+	for(int_vector::iterator it = result.begin();
 			it != result.end(); ++it)
 	{
 		if(get_pos_id(*it) != NONE)
@@ -181,24 +183,15 @@ Game::get_pos_free_neigh(const pos pt) const
  * Searches continously for footballers.
  */
 
-Game::id_vector
-Game::get_ids_reachable_from(const pos pt) const
+Game::int_vector
+Game::get_ids_reachable_from(const int pt) const
 {
-	std::vector<pos_vect> vects;
-	vects.push_back(pos_vect(1, 1));
-	vects.push_back(pos_vect(1, 0));
-	vects.push_back(pos_vect(0, 1));
-	vects.push_back(pos_vect(-1, 0));
-	vects.push_back(pos_vect(0, -1));
-	vects.push_back(pos_vect(-1, -1));
-	vects.push_back(pos_vect(1, -1));
-	vects.push_back(pos_vect(-1, 1));
-	id_vector result;
-	for(std::vector<pos_vect>::iterator it = vects.begin();
-			it != vects.end(); ++it)
+	int_vector result;
+	for(std::vector<move_2d>::const_iterator it = dirs_ext.begin();
+			it != dirs_ext.end(); ++it)
 	{
-		pos cur_pos = pt;
-		id cur_id;
+		int cur_pos = pt;
+		int cur_id;
 		do
 		{
 			cur_pos = get_pos_moved(cur_pos, *it);
@@ -219,20 +212,28 @@ Game::get_ids_reachable_from(const pos pt) const
  * Eliminates opponents from get_its_reachable_from result.
  */
 
-Game::id_vector
-Game::get_ids_team_reachable_from(const pos pt) const
+Game::int_vector
+Game::get_ids_team_reachable_from(const int pt) const
 {
-	id_vector result = get_ids_reachable_from(pt);
-	//TODO eliminate risk of id_color(undefined behaviour)
-	color_spec col = id_color(get_pos_id(pt));
-	for(id_vector::iterator it = result.begin();
-			it != result.end(); ++it)
+	int_vector result;
+	color_spec cur_col = id_color(get_pos_id(pt));
+	for(std::vector<move_2d>::const_iterator it = dirs_ext.begin();
+			it != dirs_ext.end(); ++it)
 	{
-		if(id_color(*it) != col)
+		int cur_pos = pt;
+		int cur_id;
+		do
 		{
-			result.erase(it);
-			--it;
-		}
+			cur_pos = get_pos_moved(cur_pos, *it);
+			cur_id = get_pos_id(cur_pos);
+			if(cur_id != NONE)
+			{
+				color_spec cur_id_col = id_color(cur_id);
+				if(cur_id_col != cur_col)
+					break;
+				result.push_back(cur_id);
+			}
+		} while (cur_pos >= 0 && cur_pos < 49);
 	}
 	return result;
 }
@@ -243,7 +244,7 @@ Game::get_ids_team_reachable_from(const pos pt) const
  * returns id of ball owner
  */
 
-Game::id
+int
 Game::get_ball_owner(const color_spec col) const
 {
 	if(col == WHITE)
@@ -258,7 +259,7 @@ Game::get_ball_owner(const color_spec col) const
  * returns true if id has ball
  */
 
-bool Game::has_ball(const id fid) const
+bool Game::has_ball(const int fid) const
 {
 	if(id_color(fid) == WHITE)
 		return fid == white_ball_owner;
@@ -276,14 +277,14 @@ bool Game::has_ball(const id fid) const
 
 bool Game::make_move(const move m)
 {
-	id fid = get_pos_id(m.first);
-	pos pt = m.second;
+	int fid = get_pos_id(m.first);
+	int pt = m.second;
 	if(fid == NONE && !edit_mode)
 	{
 		end_turn();
 		return true;
 	}
-	id target_id = get_pos_id(pt);
+	int target_id = get_pos_id(pt);
 	if(has_ball(fid))
 	{
 		color_spec this_col = id_color(fid);
@@ -301,7 +302,7 @@ bool Game::make_move(const move m)
 		if(target_id != NONE)
 			return false;
 		bm.left.erase(fid);
-		bm.insert(bm_type::value_type(fid, pt));
+		bm.insert(boost::bimap<int, int>::value_type(fid, pt));
 		if(!edit_mode)
 			++moves_made;
 	}
@@ -320,19 +321,19 @@ bool Game::make_move(const move m)
  * Returns all possible moves, with attention to game rules.
  */
 
-Game::pos_vector
-Game::possible_moves(const id fid) const
+Game::int_vector
+Game::possible_moves(const int fid) const
 {
-	pos_vector result;
+	int_vector result;
 	if(id_color(fid) != act_player && !edit_mode)
 		return result;
-	pos pt = get_elem_pos(fid);
+	int pt = get_elem_pos(fid);
 	if(has_ball(fid))
 	{
 		if(!passed || edit_mode)
 		{
-			Game::id_vector idv = get_ids_team_reachable_from(pt);
-			for(Game::id_vector::iterator it = idv.begin();
+			Game::int_vector idv = get_ids_team_reachable_from(pt);
+			for(Game::int_vector::iterator it = idv.begin();
 				it != idv.end(); ++it)
 			{
 				result.push_back(get_elem_pos(*it));
@@ -369,6 +370,13 @@ void Game::end_turn()
 	act_player = ((act_player == WHITE) ? BLACK : WHITE);
 }
 
+bool Game::can_end_turn() const
+{
+	if(!passed && moves_made == 0)
+		return false;
+	return true;
+}
+
 /*
  * random_move
  *
@@ -377,16 +385,18 @@ void Game::end_turn()
 
 Game::move Game::random_move() const
 {
-	id obj;
-	pos tar = -1;
+	srand(time(NULL));
+	int obj;
+	int tar = -1;
+	bool can_end = can_end_turn();
 	if(passed && moves_made >= 2)
-		return move(-1, -1);
+		return MOVE_END;
 	do
 	{
-		if((rand() % 25) == 0)
-			return move(-1, -1);
+		if((rand() % 25) == 0 && can_end)
+			return MOVE_END;
 		obj = get_id(act_player, rand() % 7);
-		pos_vector chosen = possible_moves(obj);
+		int_vector chosen = possible_moves(obj);
 		if(chosen.size() == 0)
 			continue;
 		tar = chosen.at(rand() % chosen.size());
@@ -419,12 +429,12 @@ void Game::add_move(const move m)
 	moves_history.push_back(m);
 }
 
-void Game::set_position(const id fid, const pos pt)
+void Game::set_position(const int fid, const int pt)
 {
-	bm.insert(bm_type::value_type(fid, pt));
+	bm.insert(boost::bimap<int, int>::value_type(fid, pt));
 }
 
-void Game::set_ball_owner(const Game::color_spec col, const Game::id fid)
+void Game::set_ball_owner(const Game::color_spec col, const int fid)
 {
 	if(col == WHITE)
 		white_ball_owner = fid;
@@ -454,9 +464,9 @@ bool Game::bad_game() const
 Game::move Game::move_back()
 {
 	if(edit_mode)
-		return move(-1, -1);
+		return MOVE_END;
 	move last_move = moves_history.back();
-	id fid = get_pos_id(last_move.second);
+	int fid = get_pos_id(last_move.second);
 	if(act_player != id_color(fid))
 	{
 		// give control to previus player
@@ -492,7 +502,7 @@ Game::move Game::move_back()
 			white_made_move = false;
 			act_player = WHITE;
 		}
-		return move(-1, -1);
+		return MOVE_END;
 	}
 	else
 	{
@@ -612,9 +622,9 @@ int Game::moves_made_past()
 
 void Game::quiet_move(const move m)
 {
-	id fid = get_pos_id(m.first);
+	int fid = get_pos_id(m.first);
 	bm.left.erase(fid);
-	bm.insert(bm_type::value_type(fid, m.second));
+	bm.insert(boost::bimap<int, int>::value_type(fid, m.second));
 }
 
 /*
@@ -628,7 +638,7 @@ Game::move
 Game::move_forward()
 {
 	if(edit_mode)
-		return move(-1, -1);
+		return MOVE_END;
 	move result = moves_forward.back();
 	if(id_color(get_pos_id(result.first)) != act_player)
 		end_turn();
@@ -647,7 +657,7 @@ Game::move_forward()
 
 bool Game::making_line(const color_spec team) const
 {
-	pos tmp_pos;
+	int tmp_pos;
 	bool status = false;
 	for(int i = 0; i < 7; i++)
 	{
@@ -660,19 +670,16 @@ bool Game::making_line(const color_spec team) const
 	}
 	if(!status)
 		return false;
-	std::vector<pos_vect> vects;
 	do
 	{
-		vects.push_back(pos_vect(1, -1));
-		vects.push_back(pos_vect(1, 0));
-		vects.push_back(pos_vect(1, 1));
+
 		status = false;
-		pos tar_pos;
-		for(std::vector<pos_vect>::iterator it = vects.begin();
-				it != vects.end(); ++it)
+		int tar_pos;
+		for(std::vector<move_2d>::const_iterator it = dirs_line.begin();
+				it != dirs_line.end(); ++it)
 		{
 			tar_pos = get_pos_moved(tmp_pos, *it);
-			id tar_id = get_pos_id(tar_pos);
+			int tar_id = get_pos_id(tar_pos);
 			if(tar_id != NONE && (id_color(tar_id) == team))
 			{
 				status = true;
@@ -692,16 +699,16 @@ bool Game::making_line(const color_spec team) const
  * Returns vector of neighbours that belong to opposing team.
  */
 
-Game::id_vector
-Game::get_opp_neighbours(const id fid) const
+Game::int_vector
+Game::get_opp_neighbours(const int fid) const
 {
 	color_spec col = id_color(fid);
-	pos_vector vect = get_pos_neigh(get_elem_pos(fid));
-	id_vector result;
-	for(pos_vector::iterator it = vect.begin();
+	int_vector vect = get_pos_neigh(get_elem_pos(fid));
+	int_vector result;
+	for(int_vector::iterator it = vect.begin();
 			it != vect.end(); ++it)
 	{
-		id tmp_id = get_pos_id(*it);
+		int tmp_id = get_pos_id(*it);
 		if(tmp_id != NONE && id_color(tmp_id) != col)
 		{
 			result.push_back(tmp_id);
@@ -720,12 +727,12 @@ bool Game::check_unfair(const color_spec col) const
 {
 	if(making_line(col))
 	{
-		id_vector opp_neighs;
+		int_vector opp_neighs;
 		for(int i = 0; i < 7; i++)
 		{
-			id_vector tmp_neighs =
+			int_vector tmp_neighs =
 				get_opp_neighbours(get_id(col, i));
-			for(id_vector::iterator it = tmp_neighs.begin();
+			for(int_vector::iterator it = tmp_neighs.begin();
 					it != tmp_neighs.end(); ++it)
 			{
 				if(std::find(opp_neighs.begin(),

@@ -11,7 +11,7 @@ GameRules::GameRules(QWidget *parent) :
 	ui->setupUi(this);
 	QFile file(file_name);
 	file.open(QIODevice::ReadOnly);
-	ui->textEdit->setHtml(file.readAll());
+	ui->textEdit->setHtml(QString::fromUtf8(file.readAll()));
 	file.close();
 }
 

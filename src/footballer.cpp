@@ -1,19 +1,19 @@
 #include "footballer.h"
+#include "game.h"
 #include <QPixmap>
 #include <QPropertyAnimation>
-#include <QDebug>
 
 const QString Footballer::WHITE_FILE_NAME =
 		QString(":/img/white_wo_ball.png");
 const QString Footballer::BLACK_FILE_NAME =
 		QString(":/img/black_wo_ball.png");
 
-Footballer::Footballer(bool team, int id, int row, QObject *parent) :
+Footballer::Footballer(int team, int id, int row, QObject *parent) :
 	QObject(parent), QGraphicsPixmapItem()
 {
 	this->team = team;
 	this->id = id;
-	QPixmap f_pixmap(team ? WHITE_FILE_NAME : BLACK_FILE_NAME);
+	QPixmap f_pixmap(team == Game::WHITE ? WHITE_FILE_NAME : BLACK_FILE_NAME);
 	f_pixmap.scaledToHeight(row);
 	setPixmap(f_pixmap);
 	setTransformationMode(Qt::SmoothTransformation);

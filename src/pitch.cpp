@@ -5,15 +5,24 @@
 #include <QFile>
 #include <QDataStream>
 
-enum game_modes {
-	two_hum,
-	one_hum,
-	zer_hum
-};
+const QString M_WHITE = QObject::trUtf8("biały");
+const QString M_BLACK = QObject::trUtf8("czarny");
+const QString M_HUM = QObject::trUtf8("(człowiek)");
+const QString M_COM = QObject::trUtf8("(komputer)");
+const QString M_WHITE_WIN = QObject::trUtf8("Wygrana białych.");
+const QString M_BLACK_WIN = QObject::trUtf8("Wygrana czarnych.");
+const QString M_WHITE_UNFAIR = QObject::trUtf8("Biali przegrywają z powodu gry nie fair.");
+const QString M_BLACK_UNFAIR = QObject::trUtf8("Czarni przegrywają z powodu gry nie fair.");
+const QString M_INCORRECT = QObject::trUtf8("Stan gry niepoprawny.");
+const QString M_AUTOMOVES_ON = QObject::trUtf8("Autoruchy włączone.");
+const QString M_AUTOMOVES_OFF = QObject::trUtf8("Autoruchy wyłączone.");
+const QString M_LOAD_ERR = QObject::trUtf8("Błąd podczas wczytywania.");
+const QString M_SAVE_ERR = QObject::trUtf8("Bład podczas zapisywania.");
+const QString M_DEF_TITLE = QObject::trUtf8("Uwaga");
 
 Pitch::Pitch(QWidget *parent) :
-	QGraphicsView(parent), focus(-1), blocked(false), two_humans(false),
-	human_comp(false), two_comps(false), wait_for_poke(true), ended(false)
+	QGraphicsView(parent), focus(-1), blocked(false), mode(two_hum),
+	wait_for_poke(true), ended(true), saving(false)
 {
 	setScene(&scene);
 	game = new Game();
@@ -31,46 +40,52 @@ void Pitch::set_stat(QLabel *stat)
 
 void Pitch::set_two_humans()
 {
-	two_humans = true;
-	two_comps = false;
-	human_comp = false;
+	mode = two_hum;
 }
 
-void Pitch::set_human_comp()
+void Pitch::set_hum_white()
 {
-	two_humans = false;
-	two_comps = false;
-	human_comp = true;
+	mode = white_hum;
+}
+
+void Pitch::set_hum_black()
+{
+	mode = black_hum;
 }
 
 void Pitch::set_two_comps()
 {
-	two_humans = false;
-	two_comps = true;
-	human_comp = false;
+	mode = zer_hum;
 }
 
 void Pitch::new_game()
 {
 	delete game;
 	game = new Game();
+	blocked = false;
+	ended = false;
 	draw_pitch();
 }
 
-void Pitch::load_game()
+void Pitch::resizeEvent(QResizeEvent *event)
+{
+	fitInView(scene.sceneRect());
+}
+
+bool Pitch::load_game()
 {
 	QString file_name = QFileDialog::getOpenFileName(this, tr("Wczytaj grę"),
 								"", tr("Pliki zapisu gry (*.sav)"));
 	QFile file(file_name);
 	QMessageBox msgBox;
 	Game* tmpgame;
-	msgBox.setWindowTitle(tr("Uwaga"));
+	msgBox.setWindowTitle(M_DEF_TITLE);
 	try
 	{
 		tmpgame = new Game();
 		tmpgame->clear_pitch();
 		if(!file.open(QIODevice::ReadOnly))
-			throw QString(tr("Nie udało się wczytać pliku."));
+			throw QString(M_LOAD_ERR);
 		QDataStream stream(&file);
 		bool b;
 		quint8 i;
@@ -79,21 +94,23 @@ void Pitch::load_game()
 		QList<QPair<quint8, quint8> > move_list;
 		stream >> i;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania trybu gry."));
+			throw QString(M_LOAD_ERR);
 		switch(i)
 		{
 		case two_hum:
 			set_two_humans(); break;
-		case one_hum:
-			set_human_comp(); break;
+		case white_hum:
+			set_hum_white(); break;
+		case black_hum:
+			set_hum_black(); break;
 		case zer_hum:
 			set_two_comps(); break;
 		default:
-			throw QString(tr("Błędny tryb gry."));
+			throw QString(M_LOAD_ERR);
 		}
 		stream >> pos_list;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania pozycji."));
+			throw QString(M_LOAD_ERR);
 		for(int i = 0; i < 14; i++)
 		{
 			tmpgame->set_position(i, pos_list.at(i));
@@ -102,7 +119,7 @@ void Pitch::load_game()
 		tmpgame->set_ball_owner(Game::BLACK, pos_list.at(15));
 		stream >> move_list;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania historii."));
+			throw QString(M_LOAD_ERR);
 		for(int i = 0; i < move_list.size(); i++)
 		{
 			Game::move m;
@@ -110,25 +127,25 @@ void Pitch::load_game()
 			m.second = move_list.at(i).second;
 			tmpgame->add_move(m);
 		}
+		stream >> i;
+		if(stream.status() != QDataStream::Ok)
+			throw QString(M_LOAD_ERR);
+		tmpgame->set_act_player((Game::color_spec) i);
 		stream >> b;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania gracza."));
-		tmpgame->set_act_player(b);
-		stream >> b;
-		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania gracza."));
+			throw QString(M_LOAD_ERR);
 		tmpgame->set_white_made_move(b);
 		stream >> j;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania ruchu."));
+			throw QString(M_LOAD_ERR);
 		tmpgame->set_turn((int)j);
 		stream >> b;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania historii."));
+			throw QString(M_LOAD_ERR);
 		tmpgame->set_passed(b);
 		stream >> i;
 		if(stream.status() != QDataStream::Ok)
-			throw QString(tr("Błąd podczas wczytywania historii."));
+			throw QString(M_LOAD_ERR);
 		tmpgame->set_moves_made(i);
 		if(tmpgame->moves_back_stored() > 0)
 			emit enable_back(true);
@@ -139,13 +156,18 @@ void Pitch::load_game()
 		msgBox.exec();
 		delete tmpgame;
 		file.close();
-		return;
+		return false;
 	}
 	file.close();
 	delete game;
 	game = tmpgame;
+	if(game->get_game_state() != Game::CORRECT)
+		ended = true;
+	else
+		ended = false;
+	blocked = false;
 	draw_pitch();
-	update_state();
+	return true;
 }
 
 void Pitch::save_game()
@@ -153,20 +175,24 @@ void Pitch::save_game()
 	if(game->get_game_state() == Game::INCORRECT)
 	{
 		QMessageBox msgBox;
-		msgBox.setWindowTitle(tr("Uwaga"));
+		msgBox.setWindowTitle(M_DEF_TITLE);
 		msgBox.setText(tr("Odmawiam zapisania niepoprawnego układu planszy."));
 		msgBox.exec();
 		return;
 	}
+	saving = true;
+	blocked = true;
 	QString file_name = QFileDialog::getSaveFileName(this, tr("Zapisz grę"),
 											"", tr("Pliki zapisu gry (*.sav)"));
 	QFile file(file_name);
 	if(!file.open(QIODevice::WriteOnly))
 	{
 		QMessageBox msgBox;
-		msgBox.setWindowTitle(tr("Uwaga"));
+		msgBox.setWindowTitle(M_DEF_TITLE);
 		msgBox.setText(tr("Nie udało się dokonać zapisu do pliku."));
 		msgBox.exec();
+		blocked = false;
+		saving = false;
 		return;
 	}
 	QList<quint8> pos_list;
@@ -184,17 +210,30 @@ void Pitch::save_game()
 		QPair<quint8, quint8> p(m.first, m.second);
 		move_list.append(p);
 	}
-	game_modes gmode;
-	if(two_humans)
-		gmode = two_hum;
-	if(human_comp)
-		gmode = one_hum;
-	if(two_comps)
-		gmode = zer_hum;
-	stream << (quint8) gmode << pos_list << move_list << (bool) game->get_act_player();
+	stream << (quint8) mode << pos_list << move_list << (quint8) game->get_act_player();
 	stream << (bool) game->get_white_made_move() << (quint16) game->get_turn();
 	stream << (bool) game->get_passed() << (quint8) game->get_moves_made();
 	file.close();
+	blocked = false;
+	saving = false;
+	update_state();
+}
+
+bool Pitch::is_auto_to_move()
+{
+	Game::color_spec pl = game->get_act_player();
+	switch(mode)
+	{
+	case white_hum:
+		if(pl == Game::BLACK) return true; break;
+	case black_hum:
+		if(pl == Game::WHITE) return true; break;
+	case zer_hum:
+		return true; break;
+	default:
+		return false; break;
+	}
+	return false;
 }
 
 void Pitch::draw_pitch()
@@ -213,33 +252,34 @@ void Pitch::draw_pitch()
 	fitInView(scene.sceneRect());
 	for(int i = 0; i < 14; i++)
 	{
-		footballers.append(new Footballer(i < 7, i % 7, ROW_SIZE));
+		footballers.append(new Footballer(game->id_color(i), i % 7, ROW_SIZE));
 		scene.addItem(footballers.last());
 		footballers.last()->setPos(pos_to_coord(game->get_elem_pos(i)));
-		QObject::connect(footballers.last(), SIGNAL(chosen(bool,int)), this,
-						 SLOT(show_pos_moves(bool,int)));
+		QObject::connect(footballers.last(), SIGNAL(chosen(int,int)), this,
+						 SLOT(show_pos_moves(int,int)));
 		QObject::connect(footballers.last(), SIGNAL(anim_start()), this, SLOT(on_anim_start()));
 		QObject::connect(footballers.last(), SIGNAL(anim_end()), this, SLOT(on_anim_end()));
 	}
 	balls.append(new Ball(Game::WHITE, ROW_SIZE));
 	scene.addItem(balls.last());
-	balls.last()->setPos(ball_pos_to_coord(game->get_elem_pos(game->get_ball_owner(Game::WHITE))));
+	int wh_ball_pos = game->get_elem_pos(game->get_ball_owner(Game::WHITE));
+	int bl_ball_pos = game->get_elem_pos(game->get_ball_owner(Game::BLACK));
+	balls.last()->setPos(ball_pos_to_coord(wh_ball_pos));
 	QObject::connect(balls.last(), SIGNAL(anim_start()), this, SLOT(on_anim_start()));
 	QObject::connect(balls.last(), SIGNAL(anim_end()), this, SLOT(on_anim_end()));
 	balls.append(new Ball(Game::BLACK, ROW_SIZE));
 	scene.addItem(balls.last());
-	balls.last()->setPos(ball_pos_to_coord(game->get_elem_pos(game->get_ball_owner(Game::BLACK))));
+	balls.last()->setPos(ball_pos_to_coord(bl_ball_pos));
 	QObject::connect(balls.last(), SIGNAL(anim_start()), this, SLOT(on_anim_start()));
 	QObject::connect(balls.last(), SIGNAL(anim_end()), this, SLOT(on_anim_end()));
 	update_state();
 }
 
-void Pitch::show_pos_moves(bool team, int id)
+void Pitch::show_pos_moves(int team_int, int id)
 {
+	Game::color_spec team = (Game::color_spec) team_int;
 	if(!game->get_edit_mode() &&
-			(blocked ||
-			(human_comp && (game->get_act_player() != Game::WHITE)) ||
-			two_comps))
+			(blocked || is_auto_to_move()))
 		return;
 	if(focus != -1)
 	{
@@ -247,8 +287,8 @@ void Pitch::show_pos_moves(bool team, int id)
 		clear_shadows();
 	}
 	int z = (game->has_ball(game->get_id(team, id)) ? 2 : 1);
-	Game::pos_vector moves = game->possible_moves(game->get_id(team, id));
-	for(Game::pos_vector::iterator it = moves.begin();
+	Game::int_vector moves = game->possible_moves(game->get_id(team, id));
+	for(Game::int_vector::iterator it = moves.begin();
 		it != moves.end(); ++it)
 	{
 		shadows.append(new ClickableShadow(*it, ROW_SIZE, z));
@@ -260,12 +300,29 @@ void Pitch::show_pos_moves(bool team, int id)
 	focus = game->get_elem_pos(game->get_id(team, id));
 }
 
+void Pitch::show_hint()
+{
+	if(blocked)
+		return;
+	clear_shadows();
+	Game::move m = game->random_move();
+	if(m.first == -1)
+		return;
+	int z = (game->has_ball(game->get_pos_id(m.first)) ? 2 : 1);
+	shadows.append(new ClickableShadow(m.second, ROW_SIZE, z));
+	scene.addItem(shadows.last());
+	shadows.last()->setPos(pos_to_coord(m.second));
+	QObject::connect(shadows.last(), SIGNAL(chosen(int)), this,
+					 SLOT(on_chosen(int)));
+	focus = m.first;
+}
+
 void Pitch::on_chosen(int pos)
 {
 	if(blocked)
 		return;
-	Game::id fid = game->get_pos_id(focus);
-	if(game->get_act_player() != game->id_color(fid))
+	int fid = game->get_pos_id(focus);
+	if(game->get_act_player() != game->id_color(fid) && !game->get_edit_mode())
 	{
 		end_turn();
 	}
@@ -281,35 +338,36 @@ void Pitch::on_chosen(int pos)
 	}
 	game->make_move(Game::move(focus, pos));
 	focus = -1;
-	update_state();
-	emit enable_back(true);
-	if(game->moves_forward_stored() == 0)
-		emit enable_forth(false);
 }
 
 void Pitch::end_turn()
 {
-	if(game->get_edit_mode())
+	if(blocked)
 		return;
+	if(game->get_edit_mode() || !game->can_end_turn())
+	{
+		QMessageBox msgBox;
+		msgBox.setWindowTitle(M_DEF_TITLE);
+		msgBox.setText(tr("Nie można zakończyć tury."));
+		msgBox.exec();
+		return;
+	}
 	clear_shadows();
 	game->end_turn();
 	update_state();
-	if((human_comp && (game->get_act_player() != Game::WHITE) && !wait_for_poke)
-			|| (two_comps && !wait_for_poke))
-		move_random();
-	else
-		emit enable_back(true);
 }
 
 void Pitch::move_back()
 {
+	if(!get_auto_moves())
+		switch_auto_moves();
 	if(blocked)
 		return;
 	clear_shadows();
 	Game::move m = game->move_back();
-	if(m != Game::move(-1, -1))
+	if(m != Game::MOVE_END)
 	{
-		Game::id fid = game->get_pos_id(m.first);
+		int fid = game->get_pos_id(m.first);
 		if(game->has_ball(fid))
 		{
 			int i = (game->id_color(fid) == Game::WHITE ? 0 : 1);
@@ -320,21 +378,19 @@ void Pitch::move_back()
 		}
 	}
 	focus = -1;
-	update_state();
-	emit enable_forth(true);
-	if(game->moves_back_stored() == 0)
-		emit enable_back(false);
 }
 
 void Pitch::move_forward()
 {
+	if(!get_auto_moves())
+		switch_auto_moves();
 	if(blocked)
 		return;
 	clear_shadows();
 	Game::move m = game->move_forward();
-	if(m != Game::move(-1, -1))
+	if(m != Game::MOVE_END)
 	{
-		Game::id fid = game->get_pos_id(m.second);
+		int fid = game->get_pos_id(m.second);
 		if(game->has_ball(fid))
 		{
 			int i = (game->id_color(fid) == Game::WHITE ? 0 : 1);
@@ -345,10 +401,6 @@ void Pitch::move_forward()
 		}
 	}
 	focus = -1;
-	update_state();
-	if(game->moves_forward_stored() == 0)
-		emit enable_forth(false);
-	emit enable_back(true);
 }
 
 void Pitch::move_random()
@@ -356,12 +408,9 @@ void Pitch::move_random()
 	if(blocked || ended)
 		return;
 	Game::move m = game->random_move();
-	if(m == Game::move(-1, -1))
+	if(m == Game::MOVE_END)
 	{
 		end_turn();
-		if((human_comp && (game->get_act_player() != Game::WHITE) && !wait_for_poke)
-				|| (two_comps && !wait_for_poke))
-			move_random();
 	}
 	else
 	{
@@ -372,11 +421,9 @@ void Pitch::move_random()
 
 void Pitch::on_anim_end()
 {
-	blocked = false;
-	if(((human_comp && (game->get_act_player() != Game::WHITE) && !wait_for_poke)
-			|| (two_comps && !wait_for_poke))
-			&& !game->get_edit_mode())
-		move_random();
+	if(!saving)
+		blocked = false;
+	update_state();
 }
 
 void Pitch::on_anim_start()
@@ -389,22 +436,25 @@ void Pitch::switch_edit_mode()
 	if(!game->get_edit_mode())
 	{
 		QMessageBox msgBox;
-		msgBox.setWindowTitle(tr("Uwaga"));
+		msgBox.setWindowTitle(M_DEF_TITLE);
 		msgBox.setText(tr("Przejście w tryb edycji oznacza utratę zapisanych ruchów."));
 		msgBox.exec();
 		game->set_edit_mode(true);
-		emit enable_back(false);
-		emit enable_forth(false);
+
 	} else
 	{
 		if(game->get_game_state() == Game::INCORRECT)
 		{
 			QMessageBox msgBox;
-			msgBox.setWindowTitle(tr("Uwaga"));
+			msgBox.setWindowTitle(M_DEF_TITLE);
 			msgBox.setText(tr("Odmawiam wznowienia gry w niepoprawnym stanie."));
 			msgBox.exec();
 		} else
-		game->set_edit_mode(false);
+		{
+			game->set_edit_mode(false);
+			ended = false;
+			clear_shadows();
+		}
 	}
 	update_state();
 }
@@ -425,6 +475,25 @@ QPoint Pitch::ball_pos_to_coord(int pos)
 	return result;
 }
 
+QString Pitch::player_info()
+{
+	QString result;
+	switch(game->get_act_player())
+	{
+	case Game::WHITE:
+		result += M_WHITE;
+		break;
+	case Game::BLACK:
+		result += M_BLACK;
+		break;
+	}
+	if(is_auto_to_move())
+		result += M_COM;
+	else
+		result += M_HUM;
+	return result;
+}
+
 void Pitch::clear_shadows()
 {
 	foreach(ClickableShadow* sh, shadows)
@@ -437,54 +506,79 @@ void Pitch::clear_shadows()
 
 void Pitch::update_state()
 {
-	/* if(game->get_passed() == true && game->get_moves_made() == 2)
-	 * {
-	 * 	end_turn();
-	 * }
-	 */
 	if(game->get_edit_mode())
 	{
+		emit(enable_back(false));
+		emit(enable_forth(false));
 		stat->setText(QString("Tryb edycji."));
 		return;
 	}
-	QString gracz =
-			(game->get_act_player() == Game::WHITE ? tr("biały") : tr("czarny"));
-	stat->setText(QString("Tura %1. Gracz %2.").arg(game->get_turn()).arg(gracz));
+	if(ended)
+		return;
+	QString autoruchy =
+			(get_auto_moves() ? M_AUTOMOVES_OFF : M_AUTOMOVES_ON);
+	stat->setText(QString("Tura %1. Gracz %2. %3").arg(game->get_turn()).arg(player_info()).arg(autoruchy));
 	Game::game_state state = game->get_game_state();
 	QMessageBox msgBox;
-	msgBox.setWindowTitle(tr("Uwaga"));
+	msgBox.setWindowTitle(M_DEF_TITLE);
 	switch(state)
 	{
 	case Game::WHITE_WIN:
-		stat->setText(tr("Wygrana białych."));
-		msgBox.setText(tr("Wygrana białych."));
+		stat->setText(M_WHITE_WIN);
+		msgBox.setText(M_WHITE_WIN);
 		msgBox.exec();
 		ended = true;
 		break;
 	case Game::BLACK_WIN:
-		stat->setText("Wygrana czarnych.");
-		msgBox.setText(tr("Wygrana czarnych."));
+		stat->setText(M_BLACK_WIN);
+		msgBox.setText(M_BLACK_WIN);
 		ended = true;
 		msgBox.exec();
 		break;
 	case Game::WHITE_UNFAIR:
-		stat->setText(tr("Biali przegrywają z powodu gry nie fair."));
-		msgBox.setText(tr("Biali przegrywają z powodu gry nie fair."));
+		stat->setText(M_WHITE_UNFAIR);
+		msgBox.setText(M_WHITE_UNFAIR);
 		ended = true;
 		msgBox.exec();
 		break;
 	case Game::BLACK_UNFAIR:
-		stat->setText(tr("Czarni przegrywają z powodu gry nie fair."));
-		msgBox.setText(tr("Czarni przegrywają z powodu gry nie fair."));
+		stat->setText(M_BLACK_UNFAIR);
+		msgBox.setText(M_BLACK_UNFAIR);
 		ended = true;
 		msgBox.exec();
 		break;
 	case Game::INCORRECT:
-		stat->setText(tr("Stan gry niepoprawny."));
+		stat->setText(M_INCORRECT);
 		ended = true;
 		break;
 	default:
-		ended = false;
 		break;
 	}
+	bool active_opt = false;
+	switch(mode)
+	{
+	case white_hum:
+		if(game->get_act_player() == Game::WHITE)
+			active_opt = true;
+		break;
+	case black_hum:
+		if(game->get_act_player() == Game::BLACK)
+			active_opt = true;
+		break;
+	case two_hum:
+		active_opt = true;
+		break;
+	}
+	emit(enable_turn_end(active_opt));
+	emit(enable_hint(active_opt));
+	if(game->moves_back_stored() > 0)
+		emit(enable_back(true));
+	else
+		emit(enable_back(false));
+	if(game->moves_forward_stored() > 0)
+		emit(enable_forth(true));
+	else
+		emit(enable_forth(false));
+	if(is_auto_to_move() && !get_auto_moves())
+		move_random();
 }

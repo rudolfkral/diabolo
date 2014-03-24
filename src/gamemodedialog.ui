@@ -10,11 +10,20 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>182</height>
+    <height>189</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>Tryb gry</string>
+  </property>
+  <property name="modal">
+   <bool>false</bool>
   </property>
   <widget class="QLabel" name="label">
    <property name="geometry">
@@ -43,26 +52,33 @@
      <x>0</x>
      <y>60</y>
      <width>401</width>
-     <height>121</height>
+     <height>128</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QPushButton" name="pushButton_2">
+     <widget class="QPushButton" name="hum_vs_hum_but">
       <property name="text">
        <string>Człowiek vs człowiek</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="pushButton">
+     <widget class="QPushButton" name="hum_white_but">
       <property name="text">
-       <string>Człowiek vs komputer</string>
+       <string>Człowiek(biały) vs komputer(czarny)</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="pushButton_3">
+     <widget class="QPushButton" name="hum_black_but">
+      <property name="text">
+       <string>Człowiek(czarny) vs komputer(biały)</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="hum_zer_but">
       <property name="text">
        <string>Komputer vs komputer</string>
       </property>

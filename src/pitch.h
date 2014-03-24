@@ -18,17 +18,32 @@ public:
 	~Pitch();
 	void set_stat(QLabel* stat);
 	void set_two_humans();
-	void set_human_comp();
+	void set_hum_white();
+	void set_hum_black();
 	void set_two_comps();
 	void switch_auto_moves() { wait_for_poke = !wait_for_poke; update_state(); }
+	void set_auto_moves(bool am) { wait_for_poke = am; update_state(); }
 	void new_game();
 	bool get_auto_moves() { return wait_for_poke; }
+	bool is_auto_to_move();
+	bool is_edit_mode() { return game->get_edit_mode(); }
+	enum game_modes {
+		two_hum = 0,
+		white_hum = 1,
+		black_hum = 2,
+		zer_hum = 3
+	};
+	void resizeEvent(QResizeEvent *event);
 signals:
 	void enable_back(bool st);
 	void enable_forth(bool st);
+	void enable_turn_end(bool st);
+	void enable_hint(bool st);
+	void enable_game(bool st);
 public slots:
 	void draw_pitch();
-	void show_pos_moves(bool team, int id);
+	void show_pos_moves(int team_int, int id);
+	void show_hint();
 	void on_chosen(int pos);
 	void end_turn();
 	void move_back();
@@ -37,17 +52,16 @@ public slots:
 	void on_anim_end();
 	void on_anim_start();
 	void switch_edit_mode();
-	void load_game();
+	bool load_game();
 	void save_game();
 private:
 	static const int ROW_SIZE = 50;
 	bool blocked;
-	bool two_humans;
-	bool human_comp;
-	bool two_comps;
+	game_modes mode;
 	bool wait_for_poke;
 	bool ended;
-	Game::pos focus;
+	bool saving;
+	int focus;
 	QLabel* stat;
 	QGraphicsScene scene;
 	Game* game;
@@ -56,6 +70,7 @@ private:
 	QList<ClickableShadow*> shadows;
 	QPoint pos_to_coord(int pos);
 	QPoint ball_pos_to_coord(int pos);
+	QString player_info();
 	void clear_shadows();
 	void update_state();
 };
