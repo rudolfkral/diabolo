@@ -1,0 +1,15 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<BODY>
+<H1>Diaballik</H1><BR>
+<H2>Ogólne informacje</H2><BR>
+<P>Diaballik to turowa gra planszowa stworzona przez Filipa Lefrancois. Rozgrywana jest na planszy 7x7. Każdy gracz dysponuje siedmioma piłkarzami i piłką. Celem gry jest znalezienie się piłkarza z piłką w przeciwległym rzędzie planszy.</P><BR>
+<H2>Więcej szczegółów</H2><BR>
+<P>Na początku gry piłkarze są ustawieni naprzeciwko siebie w przeciwległych rzędach planszy. Piłkarz stojący pośrodku zaczyna z piłką. W trakcie każdej tury gracz może dwa razy się ruszyć i podać. Piłkarz mający piłkę nie może się ruszać.</H2><BR>
+<H2>Ruchy</H2><BR>
+<P>Piłkarz niemający piłki może ruszyć się w lewo, w prawo, na górę i w dół. Piłkarz mający piłkę może ją podać koledze stojącemu na lewo, na prawo, na górę, w dół lub na skos od niego. Po drodze nie może stać żaden inny piłkarz. Ruchy w turze mogą zostać wykonane w dowolnej kolejności, nie muszą również zostać wykonane wszystkie.</P><BR>
+<H2>Warunki końca gry</H2><BR>
+Wygrywa ten gracz, który pierwszy umieści piłkarza z piłką na dowolnym polu rzędu, z którego startował przeciwnik. Jednak, jeżeli jeden z graczy utworzy swoimi pionkami nieprzekraczalną linię, a trzy pionki przeciwnika będą miały kontakt wprost z tą linią(będą się stykały nie na skos z pionkami tworzącymi linię), to twórca linii przegrywa wskutek gry nie fair.</P>
+</BODY>
+</HTML>
